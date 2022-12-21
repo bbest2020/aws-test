@@ -3,6 +3,10 @@ Description:  This template deploys a VPC, with a pair of public and private sub
   route on the public subnets. It deploys a pair of NAT gateways (one in each AZ),
   and default routes for them in the private subnets.
 
+#You can create a VPC that spans multiple Availability Zones. 
+#After creating a VPC, you can add one or more subnets in each Availability Zone. 
+#Each subnet must reside exclusively within one Availability Zone and cannot span zones.
+
 Parameters:
   EnvironmentName:
     Description: An environment name that is prefixed to resource names
@@ -34,6 +38,7 @@ Parameters:
     Default: 10.192.21.0/24
 
 Resources:
+#create VPC
   VPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -43,20 +48,20 @@ Resources:
       Tags:
         - Key: Name
           Value: !Ref EnvironmentName
-
+#create internet gateway
   InternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
       Tags:
         - Key: Name
           Value: !Ref EnvironmentName
-
+#attach internet gateway to VPC
   InternetGatewayAttachment:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
       InternetGatewayId: !Ref InternetGateway
       VpcId: !Ref VPC
-
+#create subnet
   PublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
@@ -67,7 +72,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName} Public Subnet (AZ1)
-
+#create subnet
   PublicSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
@@ -78,7 +83,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName} Public Subnet (AZ2)
-
+#create subnet
   PrivateSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
@@ -89,7 +94,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName} Private Subnet (AZ1)
-
+#create subnet
   PrivateSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
@@ -100,31 +105,39 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName} Private Subnet (AZ2)
-
+#An Elastic IP address is a reserved public IP address that you can assign to any EC2 instance in a particular region, until you choose to release it
+#A Public IP address associated with an instance is not static and is lost when the instance is stopped, 
+#whereas an Elastic IP address is a static public address associated with your AWS account
+#create elastic ip address. 
   NatGateway1EIP:
     Type: AWS::EC2::EIP
+    #You can use DependsOn to explicitly specify dependencies, 
+    #which overrides the default parallelism and directs CloudFormation to operate on those resources in a specified order
     DependsOn: InternetGatewayAttachment
     Properties:
       Domain: vpc
-
+#create elastic ip address. 
   NatGateway2EIP:
     Type: AWS::EC2::EIP
     DependsOn: InternetGatewayAttachment
     Properties:
       Domain: vpc
-
+#NAT Gateway, also known as Network Address Translation Gateway, 
+#is used to enable instances present in a private subnet to help connect to the internet or AWS services. 
+#In addition to this, the gateway makes sure that the internet doesn’t initiate a connection with the instances
+#create nat gateway
   NatGateway1:
     Type: AWS::EC2::NatGateway
     Properties:
       AllocationId: !GetAtt NatGateway1EIP.AllocationId
       SubnetId: !Ref PublicSubnet1
-
+#create nat gateway
   NatGateway2:
     Type: AWS::EC2::NatGateway
     Properties:
       AllocationId: !GetAtt NatGateway2EIP.AllocationId
       SubnetId: !Ref PublicSubnet2
-
+#create route table
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -132,7 +145,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName} Public Routes
-
+#add route to route table
   DefaultPublicRoute:
     Type: AWS::EC2::Route
     DependsOn: InternetGatewayAttachment
@@ -140,20 +153,20 @@ Resources:
       RouteTableId: !Ref PublicRouteTable
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref InternetGateway
-
+#create subnet and route table association
   PublicSubnet1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       RouteTableId: !Ref PublicRouteTable
       SubnetId: !Ref PublicSubnet1
-
+#create subnet and route table association
   PublicSubnet2RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       RouteTableId: !Ref PublicRouteTable
       SubnetId: !Ref PublicSubnet2
 
-
+#create route table
   PrivateRouteTable1:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -161,20 +174,20 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName} Private Routes (AZ1)
-
+#add route to route table
   DefaultPrivateRoute1:
     Type: AWS::EC2::Route
     Properties:
       RouteTableId: !Ref PrivateRouteTable1
       DestinationCidrBlock: 0.0.0.0/0
       NatGatewayId: !Ref NatGateway1
-
+#create subnet and route table association
   PrivateSubnet1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       RouteTableId: !Ref PrivateRouteTable1
       SubnetId: !Ref PrivateSubnet1
-
+#create route table
   PrivateRouteTable2:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -182,20 +195,20 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName} Private Routes (AZ2)
-
+#add route to route table
   DefaultPrivateRoute2:
     Type: AWS::EC2::Route
     Properties:
       RouteTableId: !Ref PrivateRouteTable2
       DestinationCidrBlock: 0.0.0.0/0
       NatGatewayId: !Ref NatGateway2
-
+#create subnet and route table association
   PrivateSubnet2RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       RouteTableId: !Ref PrivateRouteTable2
       SubnetId: !Ref PrivateSubnet2
-
+#create ingress security group
   NoIngressSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
