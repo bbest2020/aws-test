@@ -107,7 +107,10 @@ Resources:
           Value: !Sub ${EnvironmentName} Private Subnet (AZ2)
 #An Elastic IP address is a reserved public IP address that you can assign to any EC2 instance in a particular region, until you choose to release it
 #A Public IP address associated with an instance is not static and is lost when the instance is stopped, 
-#whereas an Elastic IP address is a static public address associated with your AWS account
+#whereas an Elastic IP address is a static public address associated with your AWS account.
+#Why is an Elastic IP Address required for NAT Gateway?
+#It wouldn't make sense to have a dynamic address on a NAT device -- if the address changed, that would be guaranteed to break any sessions in progress... and the only way to allocate a static address is by allocating an Elastic IP address (EIP).
+#It's also common to have external vendors whitelist your servers (for access to their servers) by providing them with the EIP of your NAT Gateway, in which case a dynamic address from the public pool would be unacceptable. 
 #create elastic ip address. 
   NatGateway1EIP:
     Type: AWS::EC2::EIP

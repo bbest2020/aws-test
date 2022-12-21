@@ -1,0 +1,16 @@
+****Steps to create vpc and private and public subnets****
+- Create VPC
+- Create two public subnets (us-east-1a,us-east-1b) and two private subnets(us-east-1a,us-east-1b) and also map auto assign public ip for both the public subnets
+- Create Internet Gateway
+- Attach I-gateway to VPC
+- Create two Elasit IP to allocate to NAT-gateway
+- Create two nat-gateway on public subnet 1 and 2 and assign both Elasit IPs respectively. (Note: you can map multiple subnets to single nat-gateway)
+- Create route table for both public subnets
+- Add route for internet gateway - desination cidr block ip 0.0.0.0/0 and target as internet gateway
+- Create route table and both public subnets associations
+- Create route table for private subnet 1
+- Add route for nat-gateway - desination cidr block ip 0.0.0.0/0 and target as nat-gateway-1
+- Create route table and private subnet 1 association
+- Create route table for private subnet 2
+- Add route for nat-gateway - desination cidr block ip 0.0.0.0/0 and target as nat-gateway-2
+- Create route table and private subnet 2 association
