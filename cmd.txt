@@ -1,0 +1,2 @@
+# deploy cloudformation template using aws cli
+aws cloudformation deploy --template-file create-vpc.yaml --stack-name create-vpc-base-211222 --parameter-overrides EnvironmentName=local
