@@ -14,3 +14,21 @@
 - Create route table for private subnet 2
 - Add route for nat-gateway - desination cidr block ip 0.0.0.0/0 and target as nat-gateway-2
 - Create route table and private subnet 2 association
+
+****Security Group****
+- A security group acts as a virtual firewall for your EC2 instances to control incoming and outgoing traffic. Inbound rules control the incoming traffic to your instance, and outbound rules control the outgoing traffic from your instance
+- If you want to access your ec2 instance by ssh, add inbond entry such as ssh (22) and from ip address (or any where 0.0.0.0/0) 
+- If you want to access your ec2 instance by web, add inbond entry http (80) and from ip address (or any where 0.0.0.0/0) 
+- If you want that ec1 can't ssh to another ec2, add outbond entries of what you required. Simply don't allow all traffic.
+- All the following AWS services rely on Security Groups in some way:
+    Amazon EC2 instances
+    AWS Lambda
+    AWS Elastic load balancing
+    Databases (Amazon RDS, Amazon Redshift)
+    Other (ElastiCache, CloudSearch, Elastic Beanstalk, Elastic MapReduce)
+    Container and Kubernetes services (ECS and EKS)
+
+*****Network access control lists(NACLs)****
+NACLs are a collection of rules that control inbound and outbound traffic for subnets. 
+NACLs rules are similar to Security Groups, but they apply to the whole subnet, not individual instances.
+NACLs are stateless, ingress does not equal egress. Traffic that matches a rule for one direction will not be automatically allowed in the opposite direction. You would have to add an outbound rule.
