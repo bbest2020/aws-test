@@ -1,0 +1,25 @@
+1) Create VPC
+2) Create two subnets publicSubnet and privateSubnet
+3) Create Internetgateway
+4) Attach the Internetgateway to created VPC
+5) Create EIP
+6) Create natgateway by mapping EIP and publicSubnet
+7) Create two route tables publicRouteTable, privateRouteTable
+8) 
+    - Add route 0.0.0.0/0 and internet gateway to publicRouteTable
+    - Associate publicSubnet
+   
+9)  
+    - Add route 0.0.0.0/0 and natgateway to private Route table
+    - Associate privateSubnet
+
+-------------------------------------------------------------------
+10) Create security group and inbound rule by allowing all traffic
+-------------------------------------------------------------------
+11) Go to lambda > configuration 
+13) Edit IAM role and add AWSLambdaVPCAccessExecutionRole policy
+12) Select VPC configuration
+13) Select privateSubnet
+14) Select create security group in step 10
+
+
