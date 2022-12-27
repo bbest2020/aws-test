@@ -3,3 +3,13 @@ aws cloudformation deploy --template-file create-vpc.yaml --stack-name create-vp
 
 # delete stack
 aws cloudformation delete-stack --stack-name create-vpc-base-211222
+
+# install apache2
+- sudo apt update
+- sudo apt install apache2
+# check status
+- sudo systemctl status apache2
+# create file touch test.json
+# open file vi test.json
+# edit file enter insert
+# to exit from file esc and :wq or :wq! (save and exit) or :q (exit)
