@@ -1,7 +1,4 @@
-Description:  This template deploys a VPC, with a pair of public and private subnets spread
-  across two Availability Zones. It deploys an internet gateway, with a default
-  route on the public subnets. It deploys a pair of NAT gateways (one in each AZ),
-  and default routes for them in the private subnets.
+Description:  VPC, 2 public subnets, 2 private subnets, IG, 2NG.
 
 #You can create a VPC that spans multiple Availability Zones. 
 #After creating a VPC, you can add one or more subnets in each Availability Zone. 
