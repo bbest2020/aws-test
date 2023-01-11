@@ -1,4 +1,4 @@
-Description:  create vpc with one public and private subnet.
+Description:  vpc, public and private subnets, 2 ec2.
 
 #You can create a VPC that spans multiple Availability Zones. 
 #After creating a VPC, you can add one or more subnets in each Availability Zone. 
@@ -23,6 +23,7 @@ Parameters:
     Description: Please enter the IP range (CIDR notation) for the private subnet in the first Availability Zone
     Type: String
     Default: 10.192.20.0/24
+
 
 Resources:
 #create VPC
@@ -59,7 +60,6 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName} Public Subnet (AZ1)
-
 #create subnet
   PrivateSubnet1:
     Type: AWS::EC2::Subnet
@@ -71,31 +71,6 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName} Private Subnet (AZ1)
-
-#An Elastic IP address is a reserved public IP address that you can assign to any EC2 instance in a particular region, until you choose to release it
-#A Public IP address associated with an instance is not static and is lost when the instance is stopped, 
-#whereas an Elastic IP address is a static public address associated with your AWS account.
-#Why is an Elastic IP Address required for NAT Gateway?
-#It wouldn't make sense to have a dynamic address on a NAT device -- if the address changed, that would be guaranteed to break any sessions in progress... and the only way to allocate a static address is by allocating an Elastic IP address (EIP).
-#It's also common to have external vendors whitelist your servers (for access to their servers) by providing them with the EIP of your NAT Gateway, in which case a dynamic address from the public pool would be unacceptable. 
-#create elastic ip address. 
-  NatGateway1EIP:
-    Type: AWS::EC2::EIP
-    #You can use DependsOn to explicitly specify dependencies, 
-    #which overrides the default parallelism and directs CloudFormation to operate on those resources in a specified order
-    DependsOn: InternetGatewayAttachment
-    Properties:
-      Domain: vpc
-
-#NAT Gateway, also known as Network Address Translation Gateway, 
-#is used to enable instances present in a private subnet to help connect to the internet or AWS services. 
-#In addition to this, the gateway makes sure that the internet doesn’t initiate a connection with the instances
-#create nat gateway
-  NatGateway1:
-    Type: AWS::EC2::NatGateway
-    Properties:
-      AllocationId: !GetAtt NatGateway1EIP.AllocationId
-      SubnetId: !Ref PublicSubnet1
 
 #create route table
   PublicRouteTable:
@@ -128,13 +103,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName} Private Routes (AZ1)
-#add route to route table
-  DefaultPrivateRoute1:
-    Type: AWS::EC2::Route
-    Properties:
-      RouteTableId: !Ref PrivateRouteTable1
-      DestinationCidrBlock: 0.0.0.0/0
-      NatGatewayId: !Ref NatGateway1
+
 #create subnet and route table association
   PrivateSubnet1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
@@ -142,13 +111,94 @@ Resources:
       RouteTableId: !Ref PrivateRouteTable1
       SubnetId: !Ref PrivateSubnet1
 
-#create ingress security group
-  NoIngressSecurityGroup:
+# create web instance
+  WebAppInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0574da719dca65348 # ImageID valid only in us-east-1 region
+      InstanceType: t2.micro
+      KeyName: ec2-kp-22-12 # <-- Change to use your key-pair name
+      SecurityGroupIds:
+        - !Ref WebAppSecurityGroup
+      SubnetId: !Ref PublicSubnet1
+      Tags:
+        - Key: Name
+          Value: WebServer
+      UserData:
+        Fn::Base64: 
+          !Sub |
+            #!/bin/bash
+            sudo apt update -y
+            sudo apt install -y apache2
+            sudo systemctl start apache2
+            sudo systemctl enable apache2
+
+# create security group
+  WebAppSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: "no-ingress-sg"
-      GroupDescription: "Security group with no ingress rule"
+      GroupName: !Join ["-", [webapp-security-group, dev]]
+      GroupDescription: "Allow HTTP/HTTPS and SSH inbound and outbound traffic"
       VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+
+# create web instance
+  BackendInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0574da719dca65348 # ImageID valid only in us-east-1 region
+      InstanceType: t2.micro
+      KeyName: ec2-kp-22-12 # <-- Change to use your key-pair name
+      SecurityGroupIds:
+        - !Ref BackendSecurityGroup
+      SubnetId: !Ref PrivateSubnet1
+      Tags:
+        - Key: Name
+          Value: Backend
+      UserData:
+        Fn::Base64: 
+          !Sub |
+            #!/bin/bash
+            sudo apt update -y
+            sudo apt install -y apache2
+            sudo systemctl start apache2
+            sudo systemctl enable apache2
+
+# create backend security group
+  BackendSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Join ["-", [backend-security-group, dev]]
+      GroupDescription: "Allow HTTP/HTTPS and SSH inbound and outbound traffic"
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+
+
+
 
 Outputs:
   VPC:
@@ -159,18 +209,6 @@ Outputs:
     Description: A list of the public subnets
     Value: !Join [ ",", [ !Ref PublicSubnet1 ]]
 
-  PrivateSubnets:
-    Description: A list of the private subnets
-    Value: !Join [ ",", [ !Ref PrivateSubnet1 ]]
-
   PublicSubnet1:
     Description: A reference to the public subnet in the 1st Availability Zone
     Value: !Ref PublicSubnet1
-
-  PrivateSubnet1:
-    Description: A reference to the private subnet in the 1st Availability Zone
-    Value: !Ref PrivateSubnet1
-
-  NoIngressSecurityGroup:
-    Description: Security group with no ingress rule
-    Value: !Ref NoIngressSecurityGroup
